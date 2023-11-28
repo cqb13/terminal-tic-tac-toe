@@ -1,20 +1,17 @@
 use crossterm::{
-    cursor,
     event::{read, Event, KeyCode, KeyEvent},
-    terminal, ExecutableCommand,
+    terminal,
 };
-use std::io;
+
+pub mod utils;
+
+use utils::display::{clear_board, display_board, display_selector_board, place_marker};
 
 pub enum Movement {
     Up,
     Down,
     Left,
     Right,
-}
-
-pub enum BoardType {
-    Normal,
-    Selector,
 }
 
 fn main() {
@@ -36,48 +33,6 @@ fn game_loop() {
             break;
         }
         current_player = if current_player == 1 { 2 } else { 1 };
-    }
-}
-
-fn display_board(game_board: [[i32; 3]; 3]) {
-    let mut rows = Vec::new();
-    for row in game_board {
-        rows.push(build_row_display(row));
-    }
-
-    println!("{}", rows[0]);
-    println!("--------");
-    println!("{}", rows[1]);
-    println!("--------");
-    println!("{}", rows[2]);
-}
-
-fn build_row_display(board_row: [i32; 3]) -> String {
-    let mut row_objects = Vec::new();
-
-    for position in board_row {
-        match position {
-            10 => row_objects.push("🟦"),
-            11 => row_objects.push("⏺️"),
-            12 => row_objects.push("🆇"),
-            0 => row_objects.push("  "),
-            1 => row_objects.push("🟢"),
-            2 => row_objects.push("❌"),
-            _ => panic!("Unknown position marker"),
-        }
-    }
-
-    let formatted_row = format!("{}|{}|{}", row_objects[0], row_objects[1], row_objects[2]);
-    formatted_row
-}
-
-// clears the last 5 lines (the amount of lines the board takes up)
-fn clear_board() {
-    for _ in 0..5 {
-        io::stdout().execute(cursor::MoveUp(1)).unwrap();
-        io::stdout()
-            .execute(terminal::Clear(terminal::ClearType::CurrentLine))
-            .unwrap();
     }
 }
 
@@ -155,15 +110,6 @@ fn player_turn(mut game_board: [[i32; 3]; 3], current_player: i32) -> [[i32; 3];
     game_board
 }
 
-fn display_selector_board(mut game_board: [[i32; 3]; 3], current_pos: [i32; 2], current_player: i32) {
-    // empty square selector 10
-    // player 1 square selector 11
-    // player 2 square selector 12
-    game_board = place_marker(game_board, current_pos, current_player + 10);
-    display_board(game_board);
-
-}
-
 /**
  *   X ------------------>
  * Y  
@@ -220,19 +166,6 @@ fn valid_move(game_board: [[i32; 3]; 3], current_pos: [i32; 2]) -> bool {
     }
 
     false
-}
-
-fn place_marker(
-    mut game_board: [[i32; 3]; 3],
-    current_pos: [i32; 2],
-    current_player: i32,
-) -> [[i32; 3]; 3] {
-    let y = current_pos[0];
-    let x = current_pos[1];
-
-    game_board[y as usize][x as usize] = current_player;
-
-    game_board
 }
 
 fn check_win(game_board: [[i32; 3]; 3]) -> bool {
