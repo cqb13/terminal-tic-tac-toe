@@ -3,9 +3,25 @@ use crossterm::{
     terminal,
 };
 
-pub mod utils;
+pub mod display;
 
-use utils::display::{clear_board, display_board, display_selector_board};
+use display::{
+    display_welcome,
+    game::{clear_board, display_board, display_selector_board},
+};
+
+pub enum Movement {
+    Up,
+    Down,
+    Left,
+    Right,
+}
+
+pub enum GameState {
+    Running,
+    Draw,
+    Win,
+}
 
 pub struct Board;
 
@@ -69,14 +85,10 @@ impl Board {
     }
 }
 
-pub enum Movement {
-    Up,
-    Down,
-    Left,
-    Right,
-}
-
 fn main() {
+    //TODO: make loop of game loop for multi play
+    display_welcome();
+
     game_loop();
 
     terminal::disable_raw_mode().expect("Failed to disable raw mode");
@@ -91,10 +103,19 @@ fn game_loop() {
     loop {
         game_board = player_turn(game_board, current_player);
         display_board(game_board);
-        if check_win(game_board) {
-            println!("Player {} wins!", current_player);
-            break;
+
+        match check_win(game_board) {
+            GameState::Running => {},
+            GameState::Draw => {
+                println!("The game ends in a draw!");
+                break;
+            },
+            GameState::Win => {
+                println!("Player {} has won the game!", {current_player});
+                break;
+            }
         }
+
         current_player = if current_player == 1 { 2 } else { 1 };
     }
 }
@@ -155,7 +176,8 @@ fn player_turn(mut game_board: [[i8; 3]; 3], current_player: i8) -> [[i8; 3]; 3]
                     state: _,
                 }) => {
                     terminal::disable_raw_mode().expect("Failed to disable raw mode");
-                    panic!("User quit!");
+                    println!("Quitting...");
+                    std::process::exit(0);
                 }
                 _ => current_pos,
             }
@@ -231,13 +253,13 @@ fn valid_move(game_board: [[i8; 3]; 3], current_pos: [i8; 2]) -> bool {
     false
 }
 
-fn check_win(game_board: [[i8; 3]; 3]) -> bool {
+fn check_win(game_board: [[i8; 3]; 3]) -> GameState {
     for i in 0..3 {
         if Board::get_row(game_board, i)[0] == Board::get_row(game_board, i)[1]
             && Board::get_row(game_board, i)[1] == Board::get_row(game_board, i)[2]
             && Board::get_row(game_board, i)[0] != 0
         {
-            return true;
+            return GameState::Win
         }
     }
 
@@ -246,7 +268,7 @@ fn check_win(game_board: [[i8; 3]; 3]) -> bool {
             && Board::get_column(game_board, i)[1] == Board::get_column(game_board, i)[2]
             && Board::get_column(game_board, i)[0] != 0
         {
-            return true;
+            return GameState::Win
         }
     }
 
@@ -254,8 +276,16 @@ fn check_win(game_board: [[i8; 3]; 3]) -> bool {
         && Board::get_diagonal(game_board, 1)[1] == Board::get_diagonal(game_board, 1)[2]
         && Board::get_diagonal(game_board, 1)[0] != 0
     {
-        return true;
+        return GameState::Win
     }
 
-    false
+    for row in game_board {
+        for position in row {
+            if position == 0 {
+                return GameState::Running
+            }
+        }
+    }
+
+    GameState::Draw
 }
