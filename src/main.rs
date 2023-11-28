@@ -6,8 +6,8 @@ use crossterm::{
 pub mod display;
 
 use display::{
-    display_welcome,
-    game::{clear_board, display_board, display_selector_board},
+    display_welcome, game_options,
+    game::{clear_board, display_board, display_selector_board}
 };
 
 pub enum Movement {
@@ -21,6 +21,39 @@ pub enum GameState {
     Running,
     Draw,
     Win,
+}
+
+pub struct GameConfig {
+    pub game_mode: GameMode,
+    pub difficulty: Difficulty,
+}
+
+impl GameConfig {
+    pub fn new(game_mode: GameMode, difficulty: Difficulty) -> GameConfig {
+        GameConfig {
+            game_mode,
+            difficulty,
+        }
+    }
+
+    pub fn set_game_mode(&mut self, game_mode: GameMode) {
+        self.game_mode = game_mode;
+    }
+
+    pub fn set_difficulty(&mut self, difficulty: Difficulty) {
+        self.difficulty = difficulty;
+    }
+}
+
+pub enum GameMode {
+    SinglePlayer,
+    MultiPlayer,
+}
+
+pub enum Difficulty {
+    Easy,
+    Medium,
+    Hard,
 }
 
 pub struct Board;
@@ -88,6 +121,7 @@ impl Board {
 fn main() {
     //TODO: make loop of game loop for multi play
     display_welcome();
+    game_options();
 
     game_loop();
 
