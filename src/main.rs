@@ -164,55 +164,36 @@ fn player_turn(mut game_board: [[i8; 3]; 3], current_player: i8) -> [[i8; 3]; 3]
         terminal::enable_raw_mode().expect("Failed to enable raw mode");
         current_pos = if let Ok(event) = read() {
             match event {
-                Event::Key(KeyEvent {
-                    code: KeyCode::Up,
-                    modifiers: _,
-                    kind: _,
-                    state: _,
-                }) => move_current_pos(current_pos, Movement::Up),
-                Event::Key(KeyEvent {
-                    code: KeyCode::Down,
-                    modifiers: _,
-                    kind: _,
-                    state: _,
-                }) => move_current_pos(current_pos, Movement::Down),
-                Event::Key(KeyEvent {
-                    code: KeyCode::Left,
-                    modifiers: _,
-                    kind: _,
-                    state: _,
-                }) => move_current_pos(current_pos, Movement::Left),
-                Event::Key(KeyEvent {
-                    code: KeyCode::Right,
-                    modifiers: _,
-                    kind: _,
-                    state: _,
-                }) => move_current_pos(current_pos, Movement::Right),
-                Event::Key(KeyEvent {
-                    code: KeyCode::Enter,
-                    modifiers: _,
-                    kind: _,
-                    state: _,
-                }) => {
-                    terminal::disable_raw_mode().expect("Failed to disable raw mode");
-
-                    if valid_move(game_board, current_pos) {
-                        clear_board();
-                        game_board = Board::place_marker(game_board, current_pos, current_player);
-                        break;
+                Event::Key(KeyEvent { code, .. }) => match code {
+                    KeyCode::Char('q') => {
+                        terminal::disable_raw_mode().expect("Failed to disable raw mode");
+                        println!("Quitting...");
+                        std::process::exit(0);
                     }
-                    current_pos
-                }
-                Event::Key(KeyEvent {
-                    code: KeyCode::Char('q'),
-                    modifiers: _,
-                    kind: _,
-                    state: _,
-                }) => {
-                    terminal::disable_raw_mode().expect("Failed to disable raw mode");
-                    println!("Quitting...");
-                    std::process::exit(0);
-                }
+                    KeyCode::Up => {
+                        move_current_pos(current_pos, Movement::Up)
+                    }
+                    KeyCode::Down => {
+                        move_current_pos(current_pos, Movement::Down)
+                    }
+                    KeyCode::Left => {
+                        move_current_pos(current_pos, Movement::Left)
+                    }
+                    KeyCode::Right => {
+                        move_current_pos(current_pos, Movement::Right)
+                    }
+                    KeyCode::Enter => {
+                        terminal::disable_raw_mode().expect("Failed to disable raw mode");
+
+                        if valid_move(game_board, current_pos) {
+                            clear_board();
+                            game_board = Board::place_marker(game_board, current_pos, current_player);
+                            break;
+                        }
+                        current_pos
+                    }
+                    _ => current_pos
+                },
                 _ => current_pos,
             }
         } else {
