@@ -1,7 +1,9 @@
 use crossterm::{cursor, terminal, ExecutableCommand};
 use std::io;
 
-pub fn display_board(game_board: [[i32; 3]; 3]) {
+use crate::Board;
+
+pub fn display_board(game_board: [[i8; 3]; 3]) {
     let mut rows = Vec::new();
     for row in game_board {
         rows.push(build_row_display(row));
@@ -15,9 +17,9 @@ pub fn display_board(game_board: [[i32; 3]; 3]) {
 }
 
 pub fn display_selector_board(
-    mut game_board: [[i32; 3]; 3],
-    current_pos: [i32; 2],
-    current_player: i32,
+    mut game_board: [[i8; 3]; 3],
+    current_pos: [i8; 2],
+    current_player: i8,
 ) {
     let y = current_pos[0];
     let x = current_pos[1];
@@ -28,7 +30,7 @@ pub fn display_selector_board(
         -1
     };
 
-    game_board = place_marker(game_board, current_pos, marker);
+    game_board = Board::place_marker(game_board, current_pos, marker);
     display_board(game_board);
 }
 
@@ -42,7 +44,7 @@ pub fn clear_board() {
     }
 }
 
-fn build_row_display(board_row: [i32; 3]) -> String {
+fn build_row_display(board_row: [i8; 3]) -> String {
     let mut row_objects = Vec::new();
 
     for position in board_row {
@@ -59,17 +61,4 @@ fn build_row_display(board_row: [i32; 3]) -> String {
 
     let formatted_row = format!("{}|{}|{}", row_objects[0], row_objects[1], row_objects[2]);
     formatted_row
-}
-
-pub fn place_marker(
-    mut game_board: [[i32; 3]; 3],
-    current_pos: [i32; 2],
-    current_player: i32,
-) -> [[i32; 3]; 3] {
-    let y = current_pos[0];
-    let x = current_pos[1];
-
-    game_board[y as usize][x as usize] = current_player;
-
-    game_board
 }

@@ -28,6 +28,5 @@ This is a simple console-based Tic-Tac-Toe game implemented in Rust. The game ut
 
 ## Future Improvements
 
-- Implement win-checking logic.
 - Add a proper game over screen with the option to restart.
 - Enhance the console UI for a better visual experience.
