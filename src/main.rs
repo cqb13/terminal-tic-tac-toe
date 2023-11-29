@@ -2,12 +2,15 @@ use crossterm::{
     event::{read, Event, KeyCode, KeyEvent},
     terminal,
 };
+use std::env;
+use std::time::Duration;
 
 pub mod display;
 
 use display::{
-    display_welcome, game_options,
-    game::{clear_board, display_board, display_selector_board}
+    display_welcome,
+    game::{clear_board, display_board, display_selector_board},
+    game_options,
 };
 
 pub enum Movement {
@@ -139,13 +142,13 @@ fn game_loop() {
         display_board(game_board);
 
         match check_win(game_board) {
-            GameState::Running => {},
+            GameState::Running => {}
             GameState::Draw => {
                 println!("The game ends in a draw!");
                 break;
-            },
+            }
             GameState::Win => {
-                println!("Player {} has won the game!", {current_player});
+                println!("Player {} has won the game!", { current_player });
                 break;
             }
         }
@@ -170,29 +173,22 @@ fn player_turn(mut game_board: [[i8; 3]; 3], current_player: i8) -> [[i8; 3]; 3]
                         println!("Quitting...");
                         std::process::exit(0);
                     }
-                    KeyCode::Up => {
-                        move_current_pos(current_pos, Movement::Up)
-                    }
-                    KeyCode::Down => {
-                        move_current_pos(current_pos, Movement::Down)
-                    }
-                    KeyCode::Left => {
-                        move_current_pos(current_pos, Movement::Left)
-                    }
-                    KeyCode::Right => {
-                        move_current_pos(current_pos, Movement::Right)
-                    }
+                    KeyCode::Up => move_current_pos(current_pos, Movement::Up),
+                    KeyCode::Down => move_current_pos(current_pos, Movement::Down),
+                    KeyCode::Left => move_current_pos(current_pos, Movement::Left),
+                    KeyCode::Right => move_current_pos(current_pos, Movement::Right),
                     KeyCode::Enter => {
                         terminal::disable_raw_mode().expect("Failed to disable raw mode");
 
                         if valid_move(game_board, current_pos) {
                             clear_board();
-                            game_board = Board::place_marker(game_board, current_pos, current_player);
+                            game_board =
+                                Board::place_marker(game_board, current_pos, current_player);
                             break;
                         }
                         current_pos
                     }
-                    _ => current_pos
+                    _ => current_pos,
                 },
                 _ => current_pos,
             }
@@ -201,6 +197,11 @@ fn player_turn(mut game_board: [[i8; 3]; 3], current_player: i8) -> [[i8; 3]; 3]
         };
 
         terminal::disable_raw_mode().expect("Failed to disable raw mode");
+
+        // Introduce a short delay only on Windows
+        if env::consts::OS == "windows" {
+            std::thread::sleep(Duration::from_millis(50));
+        }
 
         clear_board();
         display_selector_board(game_board, current_pos, current_player);
@@ -274,7 +275,7 @@ fn check_win(game_board: [[i8; 3]; 3]) -> GameState {
             && Board::get_row(game_board, i)[1] == Board::get_row(game_board, i)[2]
             && Board::get_row(game_board, i)[0] != 0
         {
-            return GameState::Win
+            return GameState::Win;
         }
     }
 
@@ -283,7 +284,7 @@ fn check_win(game_board: [[i8; 3]; 3]) -> GameState {
             && Board::get_column(game_board, i)[1] == Board::get_column(game_board, i)[2]
             && Board::get_column(game_board, i)[0] != 0
         {
-            return GameState::Win
+            return GameState::Win;
         }
     }
 
@@ -291,13 +292,13 @@ fn check_win(game_board: [[i8; 3]; 3]) -> GameState {
         && Board::get_diagonal(game_board, 1)[1] == Board::get_diagonal(game_board, 1)[2]
         && Board::get_diagonal(game_board, 1)[0] != 0
     {
-        return GameState::Win
+        return GameState::Win;
     }
 
     for row in game_board {
         for position in row {
             if position == 0 {
-                return GameState::Running
+                return GameState::Running;
             }
         }
     }

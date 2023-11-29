@@ -49,7 +49,7 @@ fn build_row_display(board_row: [i8; 3]) -> String {
 
     for position in board_row {
         match position {
-            -1 => row_objects.push(" ▫️ "),
+            -1 => row_objects.push(" ⌧ "),
             11 => row_objects.push(" 🅇 "),
             12 => row_objects.push(" ⓪ "),
             0 => row_objects.push("   "),
