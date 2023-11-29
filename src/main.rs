@@ -2,8 +2,6 @@ use crossterm::{
     event::{read, Event, KeyCode, KeyEvent},
     terminal,
 };
-use std::env;
-use std::time::Duration;
 
 pub mod display;
 
@@ -198,11 +196,6 @@ fn player_turn(mut game_board: [[i8; 3]; 3], current_player: i8) -> [[i8; 3]; 3]
 
         terminal::disable_raw_mode().expect("Failed to disable raw mode");
 
-        // Introduce a short delay only on Windows
-        if env::consts::OS == "windows" {
-            std::thread::sleep(Duration::from_millis(50));
-        }
-
         clear_board();
         display_selector_board(game_board, current_pos, current_player);
     }
@@ -291,6 +284,13 @@ fn check_win(game_board: [[i8; 3]; 3]) -> GameState {
     if Board::get_diagonal(game_board, 1)[0] == Board::get_diagonal(game_board, 1)[1]
         && Board::get_diagonal(game_board, 1)[1] == Board::get_diagonal(game_board, 1)[2]
         && Board::get_diagonal(game_board, 1)[0] != 0
+    {
+        return GameState::Win;
+    }
+
+    if Board::get_diagonal(game_board, 2)[0] == Board::get_diagonal(game_board, 2)[1]
+        && Board::get_diagonal(game_board, 2)[1] == Board::get_diagonal(game_board, 2)[2]
+        && Board::get_diagonal(game_board, 2)[0] != 0
     {
         return GameState::Win;
     }
