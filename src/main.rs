@@ -2,6 +2,7 @@ use crossterm::{
     event::{read, Event, KeyCode, KeyEvent},
     terminal,
 };
+use rand::Rng;
 
 pub mod display;
 
@@ -120,38 +121,87 @@ impl Board {
 }
 
 fn main() {
-    //TODO: make loop of game loop for multi play
     display_welcome();
-    game_options();
+    let config = game_options();
 
-    game_loop();
+    let game_mode = config.game_mode;
+    let difficulty = config.difficulty;
+
+    let single_player = match game_mode {
+        GameMode::SinglePlayer => true,
+        GameMode::MultiPlayer => false,
+    };
+
+    let difficulty_num = match difficulty {
+        Difficulty::Easy => 1,
+        Difficulty::Medium => 2,
+        Difficulty::Hard => 3,
+    };
+
+    game_loop(single_player, difficulty_num);
 
     terminal::disable_raw_mode().expect("Failed to disable raw mode");
 }
 
-fn game_loop() {
+fn game_loop(single_player: bool, difficulty: i8) {
     let mut game_board = Board::new();
     let mut current_player = 1;
 
     display_board(game_board);
 
-    loop {
-        game_board = player_turn(game_board, current_player);
-        display_board(game_board);
+    if single_player {
+        //TODO: on medium and hard, randomize who goes first
+        loop {
+            game_board = player_turn(game_board, current_player);
+            display_board(game_board);
 
-        match check_win(game_board) {
-            GameState::Running => {}
-            GameState::Draw => {
-                println!("The game ends in a draw!");
-                break;
+            match check_win(game_board) {
+                GameState::Running => {}
+                GameState::Draw => {
+                    println!("The game ends in a draw!");
+                    break;
+                }
+                GameState::Win => {
+                    println!("Player {} has won the game!", { current_player });
+                    break;
+                }
             }
-            GameState::Win => {
-                println!("Player {} has won the game!", { current_player });
-                break;
+
+            game_board = computer_turn(game_board, difficulty);
+            clear_board();
+            display_board(game_board);
+
+            match check_win(game_board) {
+                GameState::Running => {}
+                GameState::Draw => {
+                    println!("The game ends in a draw!");
+                    break;
+                }
+                GameState::Win => {
+                    println!("The computer has won the game!");
+                    break;
+                }
             }
         }
+    } else {
+        loop {
+            game_board = player_turn(game_board, current_player);
+            display_board(game_board);
 
-        current_player = if current_player == 1 { 2 } else { 1 };
+            match check_win(game_board) {
+                GameState::Running => {}
+                GameState::Draw => {
+                    println!("The game ends in a draw!");
+                    break;
+                }
+                GameState::Win => {
+                    println!("Player {} has won the game!", { current_player });
+                    break;
+                }
+            }
+
+            current_player = if current_player == 1 { 2 } else { 1 };
+        }
     }
 }
 
@@ -249,6 +299,243 @@ fn move_current_pos(mut current_pos: [i8; 2], movement_direction: Movement) -> [
     }
 
     current_pos
+}
+
+fn computer_turn(mut game_board: [[i8; 3]; 3], difficulty: i8) -> [[i8; 3]; 3] {
+
+    let computer_move = computer_move(game_board, difficulty);
+
+    game_board = Board::place_marker(game_board, computer_move, 2);
+
+    game_board
+}
+
+fn computer_move(game_board: [[i8; 3]; 3], difficulty: i8) -> [i8; 2] {
+    match difficulty {
+        1 => return make_random_move(game_board),
+        2 | 3 => {
+
+            let can_o_win = can_player_win(game_board, 2);
+            let can_x_win = can_player_win(game_board, 1);
+
+            if difficulty == 2 && miss_the_right_move() {
+                return make_random_move(game_board);
+            }
+
+            if can_o_win[0] != -1 {
+                return can_o_win;
+            }
+
+            if difficulty == 2 && miss_the_right_move() {
+                return make_random_move(game_board);
+            }
+
+            if can_x_win[0] != -1 {
+                return can_x_win;
+            }
+
+            if difficulty == 2 {
+                return make_random_move(game_board);
+            } else {
+                return find_best_move_for_player(game_board, 2);
+            }
+        }
+        _ => panic!("Invalid difficulty selected"),
+    }
+}
+
+fn miss_the_right_move() -> bool {
+    let mut rng = rand::thread_rng();
+    let random_num = rng.gen_range(0..10);
+
+    if random_num < 6 {
+        return true;
+    }
+
+    false
+}
+
+fn make_random_move(game_board: [[i8; 3]; 3]) -> [i8; 2] {
+    let mut current_pos = [1, 1];
+
+    loop {
+        let y = rand::thread_rng().gen_range(0..3);
+        let x = rand::thread_rng().gen_range(0..3);
+
+        current_pos[0] = y;
+        current_pos[1] = x;
+
+        if valid_move(game_board, current_pos) {
+            break;
+        }
+    }
+    current_pos
+}
+
+//TODO: when not lazy, make this good
+fn find_best_move_for_player(game_board: [[i8; 3]; 3], player: i8) -> [i8; 2] {
+    let mut best_move = [1, 1];
+
+    // check rows
+    for i in 0..3 {
+        if Board::get_row(game_board, i)[0] == player
+            && Board::get_row(game_board, i)[1] == 0
+            && Board::get_row(game_board, i)[2] == 0
+        {
+            best_move[0] = i;
+            best_move[1] = 1;
+            return best_move;
+        } else if Board::get_row(game_board, i)[0] == 0
+            && Board::get_row(game_board, i)[1] == player
+            && Board::get_row(game_board, i)[2] == 0
+        {
+            best_move[0] = i;
+            best_move[1] = 0;
+            return best_move;
+        } else if Board::get_row(game_board, i)[0] == 0
+            && Board::get_row(game_board, i)[1] == 0
+            && Board::get_row(game_board, i)[2] == player
+        {
+            best_move[0] = i;
+            best_move[1] = 0;
+            return best_move;
+        }
+    }
+
+    // check columns
+    for i in 0..3 {
+        if Board::get_column(game_board, i)[0] == player
+            && Board::get_column(game_board, i)[1] == 0
+            && Board::get_column(game_board, i)[2] == 0
+        {
+            best_move[0] = 1;
+            best_move[1] = i;
+            return best_move;
+        } else if Board::get_column(game_board, i)[0] == 0
+            && Board::get_column(game_board, i)[1] == player
+            && Board::get_column(game_board, i)[2] == 0
+        {
+            best_move[0] = 0;
+            best_move[1] = i;
+            return best_move;
+        } else if Board::get_column(game_board, i)[0] == 0
+            && Board::get_column(game_board, i)[1] == 0
+            && Board::get_column(game_board, i)[2] == player
+        {
+            best_move[0] = 0;
+            best_move[1] = i;
+            return best_move;
+        }
+    }
+
+    // check diagonals
+    if Board::get_diagonal(game_board, 1)[0] == player
+        && Board::get_diagonal(game_board, 1)[1] == 0
+        && Board::get_diagonal(game_board, 1)[2] == 0
+    {
+        best_move[0] = 1;
+        best_move[1] = 1;
+        return best_move;
+    } else if Board::get_diagonal(game_board, 1)[0] == 0
+        && Board::get_diagonal(game_board, 1)[1] == player
+        && Board::get_diagonal(game_board, 1)[2] == 0
+    {
+        best_move[0] = 0;
+        best_move[1] = 0;
+        return best_move;
+    } else if Board::get_diagonal(game_board, 1)[0] == 0
+        && Board::get_diagonal(game_board, 1)[1] == 0
+        && Board::get_diagonal(game_board, 1)[2] == player
+    {
+        best_move[0] = 0;
+        best_move[1] = 0;
+        return best_move;
+    }
+
+    best_move
+}
+
+// if there are two x's in a row, return the position of the empty spot
+fn can_player_win(game_board: [[i8; 3]; 3], win_player: i8) -> [i8; 2] {
+    let mut block_position = [-1, -1];
+
+    // check rows
+    for i in 0..3 {
+        if Board::get_row(game_board, i)[0] == win_player
+            && Board::get_row(game_board, i)[1] == win_player
+            && Board::get_row(game_board, i)[2] == 0
+        {
+            block_position[0] = i;
+            block_position[1] = 2;
+            return block_position;
+        } else if Board::get_row(game_board, i)[0] == win_player
+            && Board::get_row(game_board, i)[1] == 0
+            && Board::get_row(game_board, i)[2] == win_player
+        {
+            block_position[0] = i;
+            block_position[1] = 1;
+            return block_position;
+        } else if Board::get_row(game_board, i)[0] == 0
+            && Board::get_row(game_board, i)[1] == win_player
+            && Board::get_row(game_board, i)[2] == win_player
+        {
+            block_position[0] = i;
+            block_position[1] = 0;
+            return block_position;
+        }
+    }
+
+    // check columns
+    for i in 0..3 {
+        if Board::get_column(game_board, i)[0] == win_player
+            && Board::get_column(game_board, i)[1] == win_player
+            && Board::get_column(game_board, i)[2] == 0
+        {
+            block_position[0] = 2;
+            block_position[1] = i;
+            return block_position;
+        } else if Board::get_column(game_board, i)[0] == win_player
+            && Board::get_column(game_board, i)[1] == 0
+            && Board::get_column(game_board, i)[2] == win_player
+        {
+            block_position[0] = 1;
+            block_position[1] = i;
+            return block_position;
+        } else if Board::get_column(game_board, i)[0] == 0
+            && Board::get_column(game_board, i)[1] == win_player
+            && Board::get_column(game_board, i)[2] == win_player
+        {
+            block_position[0] = 0;
+            block_position[1] = i;
+            return block_position;
+        }
+    }
+
+    // check diagonals
+    if Board::get_diagonal(game_board, 1)[0] == win_player
+        && Board::get_diagonal(game_board, 1)[1] == win_player  
+        && Board::get_diagonal(game_board, 1)[2] == 0
+    {
+        block_position[0] = 2;
+        block_position[1] = 2;
+        return block_position;
+    } else if Board::get_diagonal(game_board, 1)[0] == win_player
+        && Board::get_diagonal(game_board, 1)[1] == 0
+        && Board::get_diagonal(game_board, 1)[2] == win_player
+    {
+        block_position[0] = 1;
+        block_position[1] = 1;
+        return block_position;
+    } else if Board::get_diagonal(game_board, 1)[0] == 0
+        && Board::get_diagonal(game_board, 1)[1] == win_player
+        && Board::get_diagonal(game_board, 1)[2] == win_player
+    {
+        block_position[0] = 0;
+        block_position[1] = 0;
+        return block_position;
+    }
+
+    block_position
 }
 
 fn valid_move(game_board: [[i8; 3]; 3], current_pos: [i8; 2]) -> bool {
