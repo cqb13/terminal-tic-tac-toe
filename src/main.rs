@@ -3,6 +3,8 @@ use crossterm::{
     terminal,
 };
 
+use rand::Rng;
+
 pub mod computer;
 pub mod display;
 
@@ -50,7 +52,7 @@ impl Player {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum BoardPiece {
     X,
     XSelected,
@@ -104,20 +106,13 @@ pub enum Row {
     Bottom,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 pub struct Position {
     pub y: i8,
     pub x: i8,
 }
 
 impl Position {
-    pub fn clone(&self) -> Position {
-        Position {
-            y: self.y,
-            x: self.x,
-        }
-    }
-
     pub fn new(y: i8, x: i8) -> Position {
         Position { y, x }
     }
@@ -290,8 +285,19 @@ fn game_loop(single_player: bool, difficulty: Difficulty) {
     display_board(&game_board);
 
     if single_player {
-        //TODO: on medium and hard, randomize who goes first
+        let mut turn = 0;
+
+        let computer_first = random_turn();
+
         loop {
+            turn += 1;
+
+            if computer_first && turn == 1 && difficulty == Difficulty::Hard {
+                game_board = computer_turn(game_board, difficulty.clone());
+                clear_board();
+                display_board(&game_board);
+            }
+
             game_board = player_turn(&game_board, current_player.clone());
             display_board(&game_board);
 
@@ -308,6 +314,8 @@ fn game_loop(single_player: bool, difficulty: Difficulty) {
                     break;
                 }
             }
+
+            turn += 1;
 
             game_board = computer_turn(game_board, difficulty.clone());
             clear_board();
@@ -350,6 +358,13 @@ fn game_loop(single_player: bool, difficulty: Difficulty) {
             }
         }
     }
+}
+
+fn random_turn() -> bool {
+    let mut rng = rand::thread_rng();
+    let random_number = rng.gen_range(0..100);
+
+    random_number < 45
 }
 
 fn player_turn(game_board: &[[BoardPiece; 3]; 3], current_player: Player) -> [[BoardPiece; 3]; 3] {
@@ -416,34 +431,14 @@ fn move_current_pos(mut current_pos: Position, movement_direction: Movement) -> 
     let x = current_pos.get_x();
 
     match movement_direction {
-        Movement::Up => {
-            if y - 1 >= 0 {
-                current_pos.set_y(y - 1)
-            } else {
-                current_pos.set_y(2)
-            }
-        }
-        Movement::Down => {
-            if y + 1 <= 2 {
-                current_pos.set_y(y + 1)
-            } else {
-                current_pos.set_y(0)
-            }
-        }
-        Movement::Left => {
-            if x - 1 >= 0 {
-                current_pos.set_x(x - 1)
-            } else {
-                current_pos.set_x(2)
-            }
-        }
-        Movement::Right => {
-            if x + 1 <= 2 {
-                current_pos.set_x(x + 1)
-            } else {
-                current_pos.set_x(0)
-            }
-        }
+        Movement::Up if y > 0 => current_pos.set_y(y - 1),
+        Movement::Up => current_pos.set_y(2),
+        Movement::Down if y < 2 => current_pos.set_y(y + 1),
+        Movement::Down => current_pos.set_y(0),
+        Movement::Left if x > 0 => current_pos.set_x(x - 1),
+        Movement::Left => current_pos.set_x(2),
+        Movement::Right if x < 2 => current_pos.set_x(x + 1),
+        Movement::Right => current_pos.set_x(0),
     }
 
     current_pos
@@ -465,11 +460,7 @@ fn valid_move(game_board: &[[BoardPiece; 3]; 3], current_pos: Position) -> bool 
     let y = current_pos.get_y();
     let x = current_pos.get_x();
 
-    if game_board[y as usize][x as usize] == BoardPiece::Empty {
-        return true;
-    }
-
-    false
+    game_board[y as usize][x as usize] == BoardPiece::Empty
 }
 
 fn check_win(game_board: [[BoardPiece; 3]; 3]) -> GameState {
