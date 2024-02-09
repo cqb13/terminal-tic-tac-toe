@@ -1,5 +1,5 @@
 use crossterm::{
-    event::{read, Event, KeyCode, KeyEvent},
+    event::{read, Event, KeyCode, KeyEvent, KeyEventKind},
     terminal,
 };
 
@@ -377,7 +377,11 @@ fn player_turn(game_board: &[[BoardPiece; 3]; 3], current_player: Player) -> [[B
         terminal::enable_raw_mode().expect("Failed to enable raw mode");
         current_pos = if let Ok(event) = read() {
             match event {
-                Event::Key(KeyEvent { code, .. }) => match code {
+                Event::Key(KeyEvent {
+                    code,
+                    kind: KeyEventKind::Press,
+                    ..
+                }) => match code {
                     KeyCode::Char('q') => {
                         terminal::disable_raw_mode().expect("Failed to disable raw mode");
                         println!("Quitting...");
